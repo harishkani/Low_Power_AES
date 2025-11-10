@@ -77,31 +77,49 @@ reg [127:0] key;
 reg enc_dec_mode;
 reg [2:0] display_group;
 
-// NIST test vectors and custom patterns
+// NIST test vectors and custom patterns with encryption/decryption support
 always @(*) begin
     case (sw[3:0])
         // NIST FIPS 197 Appendix C.1
         4'd0: begin
-            plaintext = 128'h00112233445566778899aabbccddeeff;
-            key       = 128'h000102030405060708090a0b0c0d0e0f;
+            key = 128'h000102030405060708090a0b0c0d0e0f;
+            if (enc_dec_mode) begin
+                // Encryption: plaintext → ciphertext
+                plaintext = 128'h00112233445566778899aabbccddeeff;
+            end else begin
+                // Decryption: ciphertext → plaintext
+                plaintext = 128'h69c4e0d86a7b0430d8cdb78070b4c55a;
+            end
         end
 
         // NIST FIPS 197 Appendix B
         4'd1: begin
-            plaintext = 128'h3243f6a8885a308d313198a2e0370734;
-            key       = 128'h2b7e151628aed2a6abf7158809cf4f3c;
+            key = 128'h2b7e151628aed2a6abf7158809cf4f3c;
+            if (enc_dec_mode) begin
+                plaintext = 128'h3243f6a8885a308d313198a2e0370734;
+            end else begin
+                plaintext = 128'h3925841d02dc09fbdc118597196a0b32;
+            end
         end
 
         // All zeros
         4'd2: begin
-            plaintext = 128'h00000000000000000000000000000000;
-            key       = 128'h00000000000000000000000000000000;
+            key = 128'h00000000000000000000000000000000;
+            if (enc_dec_mode) begin
+                plaintext = 128'h00000000000000000000000000000000;
+            end else begin
+                plaintext = 128'h66e94bd4ef8a2c3b884cfa59ca342b2e;
+            end
         end
 
         // All ones
         4'd3: begin
-            plaintext = 128'hffffffffffffffffffffffffffffffff;
-            key       = 128'hffffffffffffffffffffffffffffffff;
+            key = 128'hffffffffffffffffffffffffffffffff;
+            if (enc_dec_mode) begin
+                plaintext = 128'hffffffffffffffffffffffffffffffff;
+            end else begin
+                plaintext = 128'hbcbf217cb280cf30b2517052193ab979;
+            end
         end
 
         // Alternating pattern
