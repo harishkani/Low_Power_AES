@@ -106,17 +106,10 @@ always @(*) begin
 end
 
 ////////////////////////////////////////////////////////////////////////////////
-// Column Extraction
+// Column Extraction - Optimized
 ////////////////////////////////////////////////////////////////////////////////
-wire [31:0] state_col = (col_cnt == 2'd0) ? aes_state[127:96] :
-                        (col_cnt == 2'd1) ? aes_state[95:64] :
-                        (col_cnt == 2'd2) ? aes_state[63:32] :
-                                            aes_state[31:0];
-
-wire [31:0] temp_col = (col_cnt == 2'd0) ? temp_state[127:96] :
-                       (col_cnt == 2'd1) ? temp_state[95:64] :
-                       (col_cnt == 2'd2) ? temp_state[63:32] :
-                                           temp_state[31:0];
+wire [31:0] state_col = aes_state[127 - col_cnt*32 -: 32];
+wire [31:0] temp_col  = temp_state[127 - col_cnt*32 -: 32];
 
 ////////////////////////////////////////////////////////////////////////////////
 // SubBytes Module Instance
@@ -142,10 +135,7 @@ aes_shiftrows_128bit shiftrows_inst (
     .data_out(state_shifted)
 );
 
-wire [31:0] shifted_col = (col_cnt == 2'd0) ? state_shifted[127:96] :
-                          (col_cnt == 2'd1) ? state_shifted[95:64] :
-                          (col_cnt == 2'd2) ? state_shifted[63:32] :
-                                              state_shifted[31:0];
+wire [31:0] shifted_col = state_shifted[127 - col_cnt*32 -: 32];
 
 ////////////////////////////////////////////////////////////////////////////////
 // MixColumns Module Instance
@@ -179,19 +169,19 @@ always @(posedge clk or negedge rst_n) begin
         key_start   <= 1'b0;
         key_next    <= 1'b0;
         enc_dec_reg <= 1'b1;
-        
-        // Reset all round keys
-        rk00 <= 32'h0; rk01 <= 32'h0; rk02 <= 32'h0; rk03 <= 32'h0;
-        rk04 <= 32'h0; rk05 <= 32'h0; rk06 <= 32'h0; rk07 <= 32'h0;
-        rk08 <= 32'h0; rk09 <= 32'h0; rk10 <= 32'h0; rk11 <= 32'h0;
-        rk12 <= 32'h0; rk13 <= 32'h0; rk14 <= 32'h0; rk15 <= 32'h0;
-        rk16 <= 32'h0; rk17 <= 32'h0; rk18 <= 32'h0; rk19 <= 32'h0;
-        rk20 <= 32'h0; rk21 <= 32'h0; rk22 <= 32'h0; rk23 <= 32'h0;
-        rk24 <= 32'h0; rk25 <= 32'h0; rk26 <= 32'h0; rk27 <= 32'h0;
-        rk28 <= 32'h0; rk29 <= 32'h0; rk30 <= 32'h0; rk31 <= 32'h0;
-        rk32 <= 32'h0; rk33 <= 32'h0; rk34 <= 32'h0; rk35 <= 32'h0;
-        rk36 <= 32'h0; rk37 <= 32'h0; rk38 <= 32'h0; rk39 <= 32'h0;
-        rk40 <= 32'h0; rk41 <= 32'h0; rk42 <= 32'h0; rk43 <= 32'h0;
+
+        // Reset all round keys - compact format
+        {rk00, rk01, rk02, rk03} <= 128'h0;
+        {rk04, rk05, rk06, rk07} <= 128'h0;
+        {rk08, rk09, rk10, rk11} <= 128'h0;
+        {rk12, rk13, rk14, rk15} <= 128'h0;
+        {rk16, rk17, rk18, rk19} <= 128'h0;
+        {rk20, rk21, rk22, rk23} <= 128'h0;
+        {rk24, rk25, rk26, rk27} <= 128'h0;
+        {rk28, rk29, rk30, rk31} <= 128'h0;
+        {rk32, rk33, rk34, rk35} <= 128'h0;
+        {rk36, rk37, rk38, rk39} <= 128'h0;
+        {rk40, rk41, rk42, rk43} <= 128'h0;
     end else begin
         // Default: clear control signals
         key_next <= 1'b0;
