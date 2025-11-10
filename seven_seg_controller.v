@@ -47,16 +47,17 @@ assign current_digit = (digit_index == 3'd0) ? display_data[31:28] :
                                               display_data[3:0];
 
 // Anode control (active-low, one-hot encoding)
+// digit_index 0 = leftmost display (MSB), digit_index 7 = rightmost (LSB)
 always @(*) begin
     case (digit_index)
-        3'd0: an = 8'b11111110;
-        3'd1: an = 8'b11111101;
-        3'd2: an = 8'b11111011;
-        3'd3: an = 8'b11110111;
-        3'd4: an = 8'b11101111;
-        3'd5: an = 8'b11011111;
-        3'd6: an = 8'b10111111;
-        3'd7: an = 8'b01111111;
+        3'd0: an = 8'b01111111;  // Leftmost display (MSB)
+        3'd1: an = 8'b10111111;
+        3'd2: an = 8'b11011111;
+        3'd3: an = 8'b11101111;
+        3'd4: an = 8'b11110111;
+        3'd5: an = 8'b11111011;
+        3'd6: an = 8'b11111101;
+        3'd7: an = 8'b11111110;  // Rightmost display (LSB)
         default: an = 8'b11111111;
     endcase
 end
