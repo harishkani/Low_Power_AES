@@ -93,10 +93,20 @@ endfunction
 // Note: Paper's equation (5) had an error. This is the mathematically correct version.
 // ============================================================================
 
-wire [7:0] d0 = gf_mult5(a0) ^ gf_mult4(a2);  // 05Â·a0 âŠ• 04Â·a2
-wire [7:0] d1 = gf_mult5(a1) ^ gf_mult4(a3);  // 05Â·a1 âŠ• 04Â·a3
-wire [7:0] d2 = gf_mult4(a0) ^ gf_mult5(a2);  // 04Â·a0 âŠ• 05Â·a2
-wire [7:0] d3 = gf_mult4(a1) ^ gf_mult5(a3);  // 04Â·a1 âŠ• 05Â·a3
+// Pre-compute GF multiplications to avoid redundancy
+wire [7:0] a0_x4 = gf_mult4(a0);
+wire [7:0] a1_x4 = gf_mult4(a1);
+wire [7:0] a2_x4 = gf_mult4(a2);
+wire [7:0] a3_x4 = gf_mult4(a3);
+wire [7:0] a0_x5 = gf_mult5(a0);
+wire [7:0] a1_x5 = gf_mult5(a1);
+wire [7:0] a2_x5 = gf_mult5(a2);
+wire [7:0] a3_x5 = gf_mult5(a3);
+
+wire [7:0] d0 = a0_x5 ^ a2_x4;  // 05Â·a0 âŠ• 04Â·a2
+wire [7:0] d1 = a1_x5 ^ a3_x4;  // 05Â·a1 âŠ• 04Â·a3
+wire [7:0] d2 = a0_x4 ^ a2_x5;  // 04Â·a0 âŠ• 05Â·a2
+wire [7:0] d3 = a1_x4 ^ a3_x5;  // 04Â·a1 âŠ• 05Â·a3
 
 // ============================================================================
 // MUX: Select input to the shared MixColumns circuit
@@ -120,10 +130,20 @@ wire [7:0] m3 = enc_dec ? a3 : d3;
 //
 // Output column c = Matrix Ã- input column m
 
-wire [7:0] c0 = gf_mult2(m0) ^ gf_mult3(m1) ^ m2 ^ m3;           // Row 0
-wire [7:0] c1 = m0 ^ gf_mult2(m1) ^ gf_mult3(m2) ^ m3;           // Row 1
-wire [7:0] c2 = m0 ^ m1 ^ gf_mult2(m2) ^ gf_mult3(m3);           // Row 2
-wire [7:0] c3 = gf_mult3(m0) ^ m1 ^ m2 ^ gf_mult2(m3);           // Row 3
+// Pre-compute all GF multiplications for clarity and potential synthesis optimization
+wire [7:0] m0_x2 = gf_mult2(m0);
+wire [7:0] m1_x2 = gf_mult2(m1);
+wire [7:0] m2_x2 = gf_mult2(m2);
+wire [7:0] m3_x2 = gf_mult2(m3);
+wire [7:0] m0_x3 = gf_mult3(m0);
+wire [7:0] m1_x3 = gf_mult3(m1);
+wire [7:0] m2_x3 = gf_mult3(m2);
+wire [7:0] m3_x3 = gf_mult3(m3);
+
+wire [7:0] c0 = m0_x2 ^ m1_x3 ^ m2 ^ m3;           // Row 0
+wire [7:0] c1 = m0 ^ m1_x2 ^ m2_x3 ^ m3;           // Row 1
+wire [7:0] c2 = m0 ^ m1 ^ m2_x2 ^ m3_x3;           // Row 2
+wire [7:0] c3 = m0_x3 ^ m1 ^ m2 ^ m3_x2;           // Row 3
 
 // ============================================================================
 // Output (MSB first: byte 0 at [31:24])
