@@ -38,44 +38,36 @@ wire [7:0] s10 = data_in[47:40];    wire [7:0] s11 = data_in[39:32];
 wire [7:0] s12 = data_in[31:24];    wire [7:0] s13 = data_in[23:16];
 wire [7:0] s14 = data_in[15:8];     wire [7:0] s15 = data_in[7:0];
 
-// ShiftRows transformation
-// Row 0 (s0,s4,s8,s12):   no shift - same for both enc/dec
-// Row 2 (s2,s6,s10,s14):  shift 2 positions - same for both enc/dec
-// Row 1 & Row 3 differ between encryption and decryption
+// ShiftRows - Optimized with reduced mux logic
+// Encryption ShiftRows: Row 0: no shift, Row 1: <<1, Row 2: <<2, Row 3: <<3
+// Decryption InvShiftRows: Row 0: no shift, Row 1: >>1, Row 2: >>2, Row 3: >>3
 
-// Shared rows (Row 0 and Row 2 are identical for enc/dec)
-wire [7:0] row0[0:3];
-assign row0[0] = s0;   assign row0[1] = s4;   assign row0[2] = s8;   assign row0[3] = s12;
-wire [7:0] row2[0:3];
-assign row2[0] = s10;  assign row2[1] = s14;  assign row2[2] = s2;   assign row2[3] = s6;
+// Select output bytes based on enc_dec
+// Row 0: same for encryption and decryption (no shift)
+wire [7:0] b0  = s0;
+wire [7:0] b4  = s4;
+wire [7:0] b8  = s8;
+wire [7:0] b12 = s12;
 
-// Encryption: Row 1 shift left 1, Row 3 shift left 3
-wire [7:0] enc_row1[0:3];
-assign enc_row1[0] = s5;   assign enc_row1[1] = s9;   assign enc_row1[2] = s13;  assign enc_row1[3] = s1;
-wire [7:0] enc_row3[0:3];
-assign enc_row3[0] = s15;  assign enc_row3[1] = s3;   assign enc_row3[2] = s7;   assign enc_row3[3] = s11;
+// Row 1: encryption shift left 1, decryption shift right 1
+wire [7:0] b1  = enc_dec ? s5  : s13;
+wire [7:0] b5  = enc_dec ? s9  : s1;
+wire [7:0] b9  = enc_dec ? s13 : s5;
+wire [7:0] b13 = enc_dec ? s1  : s9;
 
-// Decryption: Row 1 shift right 1, Row 3 shift right 3
-wire [7:0] dec_row1[0:3];
-assign dec_row1[0] = s13;  assign dec_row1[1] = s1;   assign dec_row1[2] = s5;   assign dec_row1[3] = s9;
-wire [7:0] dec_row3[0:3];
-assign dec_row3[0] = s7;   assign dec_row3[1] = s11;  assign dec_row3[2] = s15;  assign dec_row3[3] = s3;
+// Row 2: same for both (shift 2 positions = shift left 2 = shift right 2)
+wire [7:0] b2  = s10;
+wire [7:0] b6  = s14;
+wire [7:0] b10 = s2;
+wire [7:0] b14 = s6;
 
-// Select based on enc_dec and pack output (column-major: byte 0 is MSB)
-wire [7:0] out_row1[0:3];
-wire [7:0] out_row3[0:3];
-assign out_row1[0] = enc_dec ? enc_row1[0] : dec_row1[0];
-assign out_row1[1] = enc_dec ? enc_row1[1] : dec_row1[1];
-assign out_row1[2] = enc_dec ? enc_row1[2] : dec_row1[2];
-assign out_row1[3] = enc_dec ? enc_row1[3] : dec_row1[3];
-assign out_row3[0] = enc_dec ? enc_row3[0] : dec_row3[0];
-assign out_row3[1] = enc_dec ? enc_row3[1] : dec_row3[1];
-assign out_row3[2] = enc_dec ? enc_row3[2] : dec_row3[2];
-assign out_row3[3] = enc_dec ? enc_row3[3] : dec_row3[3];
+// Row 3: encryption shift left 3, decryption shift right 3
+wire [7:0] b3  = enc_dec ? s15 : s7;
+wire [7:0] b7  = enc_dec ? s3  : s11;
+wire [7:0] b11 = enc_dec ? s7  : s15;
+wire [7:0] b15 = enc_dec ? s11 : s3;
 
-assign data_out = {row0[0], out_row1[0], row2[0], out_row3[0],
-                   row0[1], out_row1[1], row2[1], out_row3[1],
-                   row0[2], out_row1[2], row2[2], out_row3[2],
-                   row0[3], out_row1[3], row2[3], out_row3[3]};
+// Pack output in column-major order
+assign data_out = {b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15};
 
 endmodule

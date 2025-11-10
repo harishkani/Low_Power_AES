@@ -33,21 +33,19 @@ reg [3:0]  current_round;    // Current round number (0-10)
 reg [127:0] master_key;      // Store master key for regeneration if needed
 
 //////////////////////////////////////////////////////////////////////////////
-// S-box instantiation for SubWord operation
+// S-box instantiation for SubWord+RotWord operation
+// Original function: RotWord then SubWord
+//   output = {sbox(w3[23:16]), sbox(w3[15:8]), sbox(w3[7:0]), sbox(w3[31:24])}
 //////////////////////////////////////////////////////////////////////////////
-wire [7:0] sbox_out[0:3];
-genvar i;
-generate
-    for (i = 0; i < 4; i = i + 1) begin : sbox_inst
-        aes_sbox sbox (
-            .in(w3[i*8 +: 8]),
-            .out(sbox_out[i])
-        );
-    end
-endgenerate
+wire [7:0] sb_out0, sb_out1, sb_out2, sb_out3;
+
+aes_sbox sbox0 (.in(w3[7:0]),   .out(sb_out0));
+aes_sbox sbox1 (.in(w3[15:8]),  .out(sb_out1));
+aes_sbox sbox2 (.in(w3[23:16]), .out(sb_out2));
+aes_sbox sbox3 (.in(w3[31:24]), .out(sb_out3));
 
 //////////////////////////////////////////////////////////////////////////////
-// Rcon values - optimized representation
+// Rcon values
 //////////////////////////////////////////////////////////////////////////////
 function [31:0] rcon;
     input [3:0] round;
@@ -69,10 +67,11 @@ function [31:0] rcon;
 endfunction
 
 //////////////////////////////////////////////////////////////////////////////
-// SubWord with RotWord: apply S-box to each byte with rotation
-// Uses instantiated S-boxes to avoid code duplication
+// SubWord with RotWord result
+// RotWord rotates: [w3[31:24], w3[23:16], w3[15:8], w3[7:0]] -> [w3[23:16], w3[15:8], w3[7:0], w3[31:24]]
+// Then apply SubWord (S-box) to each byte
 //////////////////////////////////////////////////////////////////////////////
-wire [31:0] subword_rotword_result = {sbox_out[1], sbox_out[0], sbox_out[3], sbox_out[2]};
+wire [31:0] subword_rotword_result = {sb_out2, sb_out1, sb_out0, sb_out3};
 
 //////////////////////////////////////////////////////////////////////////////
 // Combinational logic for next round generation
